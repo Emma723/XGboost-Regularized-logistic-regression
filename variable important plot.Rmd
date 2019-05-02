@@ -1,0 +1,22 @@
+---
+title: "variable inportantance plot"
+author: "Qixuan Zhang"
+date: "5/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+varImpPlot(x, sort=TRUE, n.var=min(30, nrow(x$importance)),
+           type=NULL, class=NULL, scale=TRUE, 
+           main=deparse(substitute(x)), ...) 
+set.seed(4543)
+data(mtcars)
+mtcars.rf <- randomForest(mpg ~ ., data=mtcars, ntree=1000, keep.forest=FALSE,
+                          importance=TRUE)
+varImpPlot(mtcars.rf)
+
+```

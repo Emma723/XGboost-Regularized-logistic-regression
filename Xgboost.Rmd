@@ -1,0 +1,76 @@
+---
+title: "xGboost"
+author: "Qixuan Zhang"
+date: "5/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## XGboost
+
+
+
+```{r}
+library(xgboost)
+library(readr)
+library(stringr)
+library(caret)
+library(car)
+```
+
+#Load the dataset
+```{r}
+set.seed(100)
+setwd("C:\\Users\\ts93856\\Desktop\\datasource")
+# load data
+df_train = read_csv("train_users_2.csv")
+df_test = read_csv("test_users.csv")
+labels = df_train['labels']
+df_train = df_train[-grep('labels', colnames(df_train))]
+df_all = rbind(df_train,df_test)
+```
+
+#Data cleaning and feature engineering
+```{r}
+# clean Variables :  here I clean people with age less than 14 or more than 100
+df_all[df_all$age < 14 | df_all$age > 100,'age'] <- -1
+df_all$age[df_all$age < 0] <- mean(df_all$age[df_all$age > 0])
+# one-hot-encoding categorical features
+ohe_feats = c('gender', 'education', 'employer')
+dummies <- dummyVars(~ gender +  education + employer, data = df_all)
+df_all_ohe <- as.data.frame(predict(dummies, newdata = df_all))
+df_all_combined <- cbind(df_all[,-c(which(colnames(df_all) %in% ohe_feats))],df_all_ohe)df_all_combined$agena <- as.factor(ifelse(df_all_combined$age < 0,1,0))
+df_all_combined <- df_all_combined[,c('id',features_selected)] 
+# split train and test
+X = df_all_combined[df_all_combined$id %in% df_train$id,]
+y <- recode(labels$labels,"'True'=1; 'False'=0)
+X_test = df_all_combined[df_all_combined$id %in% df_test$id,]
+
+```
+
+#Tune and Run the Model
+```{r}
+xgb <- xgboost(data = data.matrix(X[,-1]), 
+ label = y, 
+ eta = 0.1,
+ max_depth = 15, 
+ nround=25, 
+ subsample = 0.5,
+ colsample_bytree = 0.5,
+ seed = 1,
+ eval_metric = "merror",
+ objective = "multi:softprob",
+ num_class = 12,
+ nthread = 3
+)
+```
+#Score the Test Population
+```{r}
+# predict values in test set
+y_pred <- predict(xgb, data.matrix(X_test[,-1]))
+```
+
+```
